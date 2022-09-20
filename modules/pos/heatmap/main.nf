@@ -43,28 +43,28 @@ intermediates_dir = "${params.output_dir}/${pipeline_name}-intermediate/"
 
 /* MODULE START */
 
-/* PRE1_CONVERT_GFF_TO_BED */
+/* POS-PLOT_HEATMAP_IDENTITY */
 
-process ALIGN_SEQ {
-	tag "$REF.baseName, $QUERY.baseName"
+process HEATMAP {
+	errorStrategy 'ignore'
+	tag "$TSV"
 
-	publishDir "${results_dir}/align-seq/",mode:"copy"
+	publishDir "${results_dir}/heatmap-plot/",mode:"copy"
 
 	input:
-	file REF
-	each QUERY
-	each Python_script
+	file TSV
+	file R_script
 
 	output:
-	file "*.tsv"
+	file "*"
 
 	shell:
 	"""
-  python3 ${Python_script} ${REF} ${QUERY} ${QUERY.baseName}.tsv
+  Rscript --vanilla ${R_script}
 
 	"""
 	stub:
 	"""
-	      touch  ${QUERY.baseName}.tsv
+	      touch  ${TSV}.png
 	"""
 }

@@ -1,21 +1,18 @@
 ##!/usr/bin/env bash
 cd ../
 
-mirna_gff="/bodega/projects/miRNome_project/references/gff/hsa.gff3"
-utrbed="/bodega/projects/miRNome_project/references/beds/3utr.bed"
-vcf="/bodega/projects/miRNome_project/references/vcfs/76g_PASS_0_05.vcf.gz"
-fasta="/bodega/projects/miRNome_project/references/fastas/"
-output_directory="/bodega/projects/miRNome_project/analisis/100GMX/results"
+ref_fa="real_data/Hipervirulentas/Fimbrias_tipo_I/"
+query_fa="real_data/Hipervirulentas/Fimbrias_tipo_I/"
+output_directory="$(dirname $ref_fa)/results"
 
-echo -e "======\n Lauching NF execution \n======" \
-&& nextflow run nf-compare-miRNome.nf \
-        --mirna_gff $mirna_gff \
-        --utrbed $utrbed \
-        --vcf $vcf \
-        --fasta_dir $fasta \
-        --output_dir $output_directory \
-        -resume \
-        -with-report $output_directory/`date +%Y%m%d_%H%M%S`_report.html \
-        -with-dag $output_directory/`date +%Y%m%d_%H%M%S`.DAG.html \
-        -with-timeline $output_directory/`date +%Y%m%d_%H%M%S`_timeline.html \
+echo -e "======\n Testing NF execution \n======" \
+&& rm -rf $output_directory \
+&& nextflow run nf-align_proteins.nf \
+	--ref_fa $ref_fa \
+  --query_fa $query_fa \
+	--output_dir $output_directory \
+	-resume \
+	-with-report $output_directory/`date +%Y%m%d_%H%M%S`_report.html \
+	-with-dag $output_directory/`date +%Y%m%d_%H%M%S`.DAG.html \
+	-with-timeline $output_directory/`date +%Y%m%d_%H%M%S`_timeline.html \
 && echo -e "======\n  pipeline execution END \n======"

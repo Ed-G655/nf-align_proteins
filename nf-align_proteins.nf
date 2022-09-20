@@ -54,7 +54,7 @@ def helpMessage() {
 
 		--ref_fa	<-  Directory whith reference FASTA files;
 
-	  --query_fa	<- Directory whith with query FASTA files;
+	  --query_list	<- Directory whith with query FASTA files;
 
 	  --output_dir     <- directory where results, intermediate and log files will be stored;
 	      default: same dir where --query_fasta resides
@@ -142,8 +142,8 @@ try {
     if it was not provided, it keeps the 'false' value assigned in the parameter initiation block above
     and this test fails
 */
-if ( !params.ref_fa | !params.query_fa) {
-  log.error " Please provide the --ref_fa AND --query_fa \n\n" +
+if ( !params.ref_fa | !params.query_list) {
+  log.error " Please provide the --ref_fa AND --query_list \n\n" +
   " For more information, execute: nextflow run ${pipeline_name}.nf --help"
   exit 1
 }
@@ -197,7 +197,7 @@ log.info "\n\n--Pipeline Parameters--"
 def pipelinesummary = [:]
 /* log parameter values beign used into summary */
 pipelinesummary['Input ref FASTA dir']			= params.ref_fa
-pipelinesummary['Input query FASTA dir']			= params.query_fa
+pipelinesummary['Input query list']			= params.query_list
 pipelinesummary['Results Dir']		= results_dir
 pipelinesummary['Intermediate Dir']		= intermediates_dir
 /* print stored summary info */
@@ -223,42 +223,55 @@ def get_fasta_prefix = { file -> file.baseName.replaceAll(/.fa/, "") }
 /* Load ref FASTAs files into channel */
 Channel
 	.fromPath( "${params.ref_fa}*.ref" )
-	.map{ file -> tuple(get_fasta_prefix(file) , file) }
-	.groupTuple()
 	.set{ ref_input }
 
 	/* Load query FASTAs files into channel */
 Channel
-	.fromPath( "${params.query_fa}*.fa" )
-	.map{ file -> tuple(file.baseName , file) }
-	.groupTuple()
+	.fromPath( "${params.query_list}" )
 	.set{ query_input }
 
 /*
- Load Python fileS
+ Load R script files
 */
-/* Load vcf_split.py script */
 	Channel
-		.fromPath( "./modules/core/align-seq/globlal_alignment.py" )
-		.set{ Python_script_1 }
-/*
- Load R fileS
-*/
+		.fromPath( "./modules/pos/heatmap/heatmap_v1.R" )
+		.set{ R_script_1 }
 
+/*
+ Load Python_script files
+*/
+/* Load globlal_alignment.py script */
+Channel
+	.fromPath( "./modules/core/align-seq/globlal_alignment.py" )
+	.set{ Python_script_1 }
+
+Channel
+	.fromPath( "./modules/pre/dowload_seq/download_faa.py" )
+	.set{ Python_script_2 }
 
 	/*	  Import modules */
 											/* PRE-processing */
+include {	DOWLOAD_SEQUENCES	} from './modules/pre/dowload_seq/main.nf'
+include {	FILTER_SEQ	} from './modules/pre/filter_seq/main.nf'
+											/* CORE-processing */
 include {	ALIGN_SEQ	} from './modules/core/align-seq/main.nf'
+											/* POS-processing */
+include {	HEATMAP	} from './modules/pos/heatmap/main.nf'
+
 
 
 /*  main pipeline logic */
 workflow  {
 /* PRE-processing */
-						// join FASTA channels by prefix
-					//	ref_input.view()
-						// query_input.view()
-						GROUP_BY_PREFIX = ref_input.join(query_input)
-						// PRE 1: ALIGN FASTA SEQUECES
-						ALIGN_SEQ(GROUP_BY_PREFIX, Python_script_1)
+						// Split query query_list
+						ids = query_input.splitText().map{it -> it.trim()}
+						// PRE-1:  DOWLOAD_SEQUENCES:  Dowload strain FAA files
+						DOWLOAD_SEQUENCES(ids, Python_script_2)
+						// PRE-2:  FILTER FIMBRIAL SEQUECES
+						QUERY_SEQ = FILTER_SEQ(DOWLOAD_SEQUENCES.out.flatten())
+						// CORE 1: ALIGN FASTA SEQUECES
+						ALIGN_SEQ(ref_input, QUERY_SEQ, Python_script_1)
+						// POS 1: HEATMAP
+					 	//HEATMAP(ALIGN_SEQ.out.collect(), R_script_1)
 
 }

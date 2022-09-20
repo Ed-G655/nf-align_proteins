@@ -43,28 +43,26 @@ intermediates_dir = "${params.output_dir}/${pipeline_name}-intermediate/"
 
 /* MODULE START */
 
-/* PRE1_CONVERT_GFF_TO_BED */
+/* Pre-FILTER_SEQ */
 
-process ALIGN_SEQ {
-	tag "$REF.baseName, $QUERY.baseName"
+process FILTER_SEQ {
+	tag "$FAA_FILE"
 
-	publishDir "${results_dir}/align-seq/",mode:"copy"
+	publishDir "${results_dir}/fim_fastas/",mode:"copy"
 
 	input:
-	file REF
-	each QUERY
-	each Python_script
+	each FAA_FILE
 
 	output:
-	file "*.tsv"
+	file "*.fa"
 
 	shell:
 	"""
-  python3 ${Python_script} ${REF} ${QUERY} ${QUERY.baseName}.tsv
-
+   grep "fimbrial" ${FAA_FILE} | tr -d ">" >  ${FAA_FILE.baseName}_fim.txt
+	 seqtk subseq ${FAA_FILE} ${FAA_FILE.baseName}_fim.txt > ${FAA_FILE.baseName}.fa
 	"""
 	stub:
 	"""
-	      touch  ${QUERY.baseName}.tsv
+	      touch  ${FAA_FILE.baseName}.fa
 	"""
 }

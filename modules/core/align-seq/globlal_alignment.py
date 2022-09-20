@@ -36,7 +36,7 @@ blosum62 = substitution_matrices.load("BLOSUM62")
 
 
 ##get reference FASTA file from args
-reference_faa = sys.argv[1]
+reference_fa = sys.argv[1]
 
 ##get the query FASTA file from args
 query_fasta = sys.argv[2]
@@ -44,9 +44,13 @@ query_fasta = sys.argv[2]
 ##get ouput file name from args
 Output_file = sys.argv[3]
 
+#Get query strain name
+strain_ID = query_fasta.split('.fa')[0]
+
+
 ## Define FASTA sequences as lists
 list_query = list(SeqIO.parse(str(query_fasta), "fasta"))
-list_reference = list(SeqIO.parse(str(reference_faa), "fasta"))
+list_reference = list(SeqIO.parse(str(reference_fa), "fasta"))
 
 #Get the lengt of FASTA lists
 lengt_query = (len(list_query)) - 1 # Get the number of query sequences
@@ -56,7 +60,7 @@ lengt_reference = (len(list_reference)) - 1 # Get the number of reference faa se
 results = open(str(Output_file),'w') # Ouput TSV dataframe
 
 ## Print output file header
-results.write("referenceID\tquery_seqID\tidentity\tscore\tpos\tchanges\n")
+results.write("referenceID\tstrain_ID\tquery_seqID\tquery_description\tidentity\tscore\tpos\tchanges\n")
 
 #Print number of seqnces
 print ("\n-------------------\n")
@@ -89,9 +93,10 @@ while reference <= lengt_reference:
 # Loop through sequences
     while query <= lengt_query:
         query_id = list_query[query].id # Get query ID
+        query_description = list_query[query].description
         query_seq = list_query[query].seq # Get query sequence
         # Print iterator message
-        print (f"Aligning {reference_id} and {query_id} \n")
+        print (f"Aligning {reference_id} and {query_id}, query {query + 1} of {lengt_query + 1 }, ref {reference+1} of {lengt_reference+1}\n")
         # Get indentity
         indentity = calculate_identity(reference_seq, query_seq)
         #Align sequences with BLOSUM62 matrix
@@ -112,12 +117,16 @@ while reference <= lengt_reference:
         deletions = [i.start() for i in re.finditer(space, sequence)]
         # Join list variants and deletions
         positions = variants + deletions
-        #Annotate sequence changes
-        changes = str([f"{ref[variant]}>{alt[variant]}" for variant in positions]).replace("[", "").replace("]", "")
-        #Remove list characters
-        res_pos = str(variants + deletions).replace("[", "").replace("]", "")
+        if len(positions) > 0:
+            #Annotate sequence changes
+            changes = str([f"{ref[variant]}>{alt[variant]}" for variant in positions]).replace("[", "").replace("]", "")
+            #Remove list characters
+            res_pos = str(variants + deletions).replace("[", "").replace("]", "")
+        elif len(positions) == 0:
+            changes = "."
+            res_pos = "."
         #Write results
-        results.write(f"{reference_id}\t{query_id}\t{indentity}\t{alignment_b62}\t{res_pos}\t{changes}\n")
+        results.write(f"{reference_id}\t{strain_ID}\t{query_id}\t{query_description}\t{indentity}\t{alignment_b62}\t{res_pos}\t{changes}\n")
 
         query += 1
     reference += 1

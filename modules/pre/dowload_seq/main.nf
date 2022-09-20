@@ -43,28 +43,27 @@ intermediates_dir = "${params.output_dir}/${pipeline_name}-intermediate/"
 
 /* MODULE START */
 
-/* PRE1_CONVERT_GFF_TO_BED */
+/* Pre-DOWLOAD_SEQUENCES */
 
-process ALIGN_SEQ {
-	tag "$REF.baseName, $QUERY.baseName"
+process DOWLOAD_SEQUENCES {
+	tag "$Query_list"
 
-	publishDir "${results_dir}/align-seq/",mode:"copy"
+	publishDir "${results_dir}/faa_files/",mode:"copy"
 
 	input:
-	file REF
-	each QUERY
+	each Query_list
 	each Python_script
 
 	output:
-	file "*.tsv"
+	file "*.faa"
 
 	shell:
 	"""
-  python3 ${Python_script} ${REF} ${QUERY} ${QUERY.baseName}.tsv
+  python3 ${Python_script} ${Query_list}
 
 	"""
 	stub:
 	"""
-	      touch  ${QUERY.baseName}.tsv
+	      touch  ${Query_list}.faa
 	"""
 }
